@@ -4,9 +4,18 @@
 /// 实例脚本
 /// 设置设置物体SetActive
 /// </summary>
-public class SetActive_True : BundleEventInfoBase, BundleActionHandler {
+public class SetActive_True : BundleEventInfoBase {
 
-    public void OnBundleAction(PointerEventData eventData) {
-        gameObject.SetActive(!gameObject.activeSelf);
+    public override void OnBundleAction(PointerEventData eventData) {
+        gameObject.SetActive(true);
+        SendMsg("true");
+    }
+
+    public override void OnReceiveMsg(string msg) {
+        gameObject.SetActive(true);
+    }
+
+    public override bool supportPRS() {
+        return true;
     }
 }

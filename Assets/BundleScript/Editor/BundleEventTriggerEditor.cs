@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
+using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -13,10 +12,15 @@ public class BundleEventTriggerEditor : Editor
     ReorderableList eventInfo;
     private bool isMethodVoid = false;
     //构建目标物体以修改事件
-
+    private BundleEventTriggerDesigner bundleEventTriggerDesigner;
+    //自定义脚本路径
+    private string customScriptspath;
+    private StreamReader sr = null;
     private bool init = false;
 
     private void OnEnable() {
+        //ReadCustomStcriptsPath();
+        bundleEventTriggerDesigner = (BundleEventTriggerDesigner)target;
         SetupBundleEventTriggerList();
     }
 
@@ -67,7 +71,7 @@ public class BundleEventTriggerEditor : Editor
             //菜单内容根据文件夹结构自动适配
             eventInfo.onAddDropdownCallback = (Rect buttonRect, ReorderableList list) =>
             {
-                //一个目录
+                //一个目录 标准模板脚本
                 var menu = new GenericMenu();
                 //Mod文件夹下的资产GUID
                 //得到GUIDs字符串数组
@@ -78,20 +82,92 @@ public class BundleEventTriggerEditor : Editor
                     var path = AssetDatabase.GUIDToAssetPath(guid);
                     //增加一个目录项
                     //AddItem会自动把WaveCreationParams传入ClickHandLer函数中
-                    menu.AddItem(new GUIContent("CustomEventTemplateScripts/" + System.IO.Path.GetFileNameWithoutExtension(path)), false,
+                    menu.AddItem(new GUIContent("TemplateEvent(自带模板)/" + System.IO.Path.GetFileNameWithoutExtension(path)), false,
                         ClickHandLer, new EventInfoCreationParams() { target = null, scriptPath = path, mode = BundleEventTriggerType.GazeClick});
+                }
+                //第二个目录
+                //自定义内容
+                ReadCustomStcriptsPath();
+                if (!string.IsNullOrEmpty(customScriptspath) && customScriptspath != "")
+                {
+                    guids = AssetDatabase.FindAssets("", new[] { customScriptspath });
+                    //遍历CustomEventTemplateScripts文件夹下的子目录
+                    foreach (var guid in guids)
+                    {
+                        var path = AssetDatabase.GUIDToAssetPath(guid);
+                        //增加一个目录项
+                        //AddItem会自动把WaveCreationParams传入ClickHandLer函数中
+                        menu.AddItem(new GUIContent("CustomEvent(自定义)/" + System.IO.Path.GetFileNameWithoutExtension(path)), false,
+                            ClickHandLer, new EventInfoCreationParams() { target = null, scriptPath = path, mode = BundleEventTriggerType.GazeClick });
+                    }
                 }
                 menu.ShowAsContext();
             };
-            //移除菜单
+            //移除菜单回调
             eventInfo.onRemoveCallback = (ReorderableList list) =>
             {
+
                 if (EditorUtility.DisplayDialog("警告", "删除该元素？", "是", "否"))
                 {
-                    //脚本处理
-                    //待续
+                    //被移除的物体上脚本处理
+                    BundleEventTriggerInfo removeIndo = bundleEventTriggerDesigner.bundleEventTriggerInfos[list.index];//被移除物体配置信息
+                    UnityEngine.Object @object = removeIndo.target;
+                    if (@object != null)
+                    {
+                        //有脚本
+                        BundleEventInfoBase bundleAction = ((GameObject)@object).GetComponent<BundleEventInfoBase>();
+                        if (bundleAction != null)
+                        {
+                            //删除对应脚本
+                            Type type = ((MonoScript)removeIndo.method).GetClass(); ;
+                            DestroyImmediate(((GameObject)@object).GetComponent(type));
+                        }
+                    }
                     ReorderableList.defaultBehaviours.DoRemoveButton(list);
                 }
+            };
+            //界面改变回调
+            eventInfo.onCanAddCallback = (ReorderableList list) =>
+            {
+                for (int i =0;i< list.count; i++)
+                {
+                    //每次界面对Target物体做修改时，物体不同就要处理
+                    //原来的物体去掉添加的脚本，当前新选择添加脚本
+                    SerializedProperty element = eventInfo.serializedProperty.GetArrayElementAtIndex(i);
+                    UnityEngine.Object last = bundleEventTriggerDesigner.bundleEventTriggerInfos[i].target;//原来
+                    UnityEngine.Object cur = element.FindPropertyRelative("target").objectReferenceValue;//当前
+                    if (last != cur)
+                    {
+                        //去掉旧物体上的脚本
+                        if (last != null)
+                        {
+                            BundleEventInfoBase bundleAction = ((GameObject)last).GetComponent<BundleEventInfoBase>();
+                            if (bundleAction != null)
+                            {
+                                //生成之前物体脚本
+                                DestroyImmediate(bundleAction);
+                            }
+                        }
+                        //增加当前物体脚本
+                        if (cur != null)
+                        {
+                            Type type = ((MonoScript)bundleEventTriggerDesigner.bundleEventTriggerInfos[i].method).GetClass();
+                            ((GameObject)cur).AddComponent(type);
+                            #region 不能重复添加
+                            //Type type = ((MonoScript)bundleEventTriggerDesigner.bundleEventTriggerInfos[i].method).GetClass();
+                            //if (((GameObject)cur).GetComponent<BundleEventInfoBase>() == null)
+                            //{
+                            //    ((GameObject)cur).AddComponent(type);
+                            //}
+                            //else
+                            //{
+                            //    Debug.Log("物体"+((GameObject)cur).name +"重复添加脚本" + type.Name);
+                            //}
+                            #endregion
+                        }
+                    }
+                }
+                return true;
             };
         }
     }
@@ -109,6 +185,25 @@ public class BundleEventTriggerEditor : Editor
         //这里自定义了添加 所以要应用界面逆向修改List数组
         serializedObject.ApplyModifiedProperties();
     }
+    /// <summary>
+    /// 配置自定义脚本路径
+    /// </summary>
+    private void ReadCustomStcriptsPath() {
+        string configFilePath = Application.dataPath + "/Resources/BundleConfig/config.bytes";
+        sr = new StreamReader(new FileStream(configFilePath, FileMode.Open));
+        customScriptspath = sr.ReadLine();
+        customScriptspath = sr.ReadLine();
+        string[] split = { "Assets" };
+        string[] results = customScriptspath.Split(split, StringSplitOptions.None);
+        if (results.Length < 2)
+        {
+            customScriptspath = "";
+            sr.Close();
+            return;
+        }
+        customScriptspath = "Assets" + results[1];
+        sr.Close();
+    }
 
     /// <summary>
     /// 选择回调
@@ -119,34 +214,14 @@ public class BundleEventTriggerEditor : Editor
         public string scriptPath;
     }
     public override void OnInspectorGUI() {
-        DrawDefaultInspector();
+        //绘制脚本基础
+        //DrawDefaultInspector();
         EditorGUILayout.Space();
         serializedObject.Update();
         if (eventInfo != null)
         {
             eventInfo.DoLayoutList();
         }
-        //for (int i =0;i< bundleEventTriggerInfos?.Count && i < lastTriggerInfos?.Count; i++)
-        //{
-        //    if (lastTriggerInfos[i]?.target != bundleEventTriggerInfos[i]?.target)
-        //    {
-        //        if (lastTriggerInfos[i].target != null)
-        //        { 
-        //            //重置物体上的增加的逻辑脚本
-        //            BundleEventInfoBase bundleAction = lastTriggerInfos[i].target.GetComponent<BundleEventInfoBase>();
-        //            if (bundleAction != null)
-        //            {
-        //                //生成之前物体脚本
-        //                DestroyImmediate(bundleAction);
-        //            }
-        //        }
-        //        UnityEngine.Object @object = bundleEventTriggerInfos[i].method;
-        //        Type type = ((MonoScript)@object).GetClass();
-        //        bundleEventTriggerInfos[i].target.AddComponent(type);
-        //        lastTriggerInfos[i].target = bundleEventTriggerInfos[i].target;
-        //    }
-        //}
-       
         serializedObject.ApplyModifiedProperties();
     }
 }
