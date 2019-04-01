@@ -27,6 +27,7 @@ public class BundleBuildWindowEditor : EditorWindow {
     private string unityInstallPath;
     private string scriptPath;
     private string dllName = "output.bytes";
+    private string lastDllName = "output.bytes";//上次生成的dll文件名称，修改名称
     private string prefabDir;
     private string configPath = "";
     private string configFilePath = "";
@@ -112,7 +113,7 @@ public class BundleBuildWindowEditor : EditorWindow {
         GUILayout.EndHorizontal();
 
         GUILayout.Space(spaceValue);
-        prefabs = EditorGUILayout.ObjectField("需要打包的prefab:", prefabs, typeof(GameObject)) as GameObject;
+        prefabs = EditorGUILayout.ObjectField("需要打包的prefab:", prefabs, typeof(GameObject),false) as GameObject;
         if (lastPrefab != prefabs)
         {
             lastPrefab = prefabs;
@@ -194,7 +195,8 @@ public class BundleBuildWindowEditor : EditorWindow {
             {
                 canBuildt = false;
                 Building();
-                Reset();
+                Reset();//读取一次配置文件
+                WriteConfig(configFilePath);//记录一次配置文件，保存这次打包的dll名称
                 prefabs = null;
             }
         }
@@ -206,11 +208,14 @@ public class BundleBuildWindowEditor : EditorWindow {
             sw.WriteLine(savePath);
             sw.Flush();
             sw.Close();
+            WriteConfig(configFilePath);
             changed = false;
         }
     }
     //打包
     private void Building() {
+        //生成文件名
+        string timeTick = System.DateTime.UtcNow.Ticks.ToString();
 
         //在生成记录摘要前配置BundleTrigger记录
         //BundleTrigger记录会标记被操作物体(修改其名称，给其挂载对应执行脚本)
@@ -221,7 +226,12 @@ public class BundleBuildWindowEditor : EditorWindow {
         }
         if (hasMono)
         {
+            dllName = $"output{timeTick}.bytes";
             GenerateScript(unityInstallPath);
+        }
+        else
+        {
+            AssetDatabase.RenameAsset($"Assets/Resources/BundleConfig/{lastDllName}", dllName);
         }
         //打包前处理
         PreBuidleHandler();
@@ -254,7 +264,8 @@ public class BundleBuildWindowEditor : EditorWindow {
             AssetDatabase.Refresh();
             if (hasMono)
             {
-                builds.Add((UnityEngine.Object)AssetDatabase.LoadAssetAtPath("Assets/Resources/BundleConfig/output.bytes", typeof(UnityEngine.TextAsset)));
+                //builds.Add((UnityEngine.Object)AssetDatabase.LoadAssetAtPath("Assets/Resources/BundleConfig/output.bytes", typeof(UnityEngine.TextAsset)));
+                builds.Add((UnityEngine.Object)AssetDatabase.LoadAssetAtPath($"Assets/Resources/BundleConfig/{dllName}", typeof(UnityEngine.TextAsset)));
             }
             if (hasBundleTrigger)
             {
@@ -266,7 +277,7 @@ public class BundleBuildWindowEditor : EditorWindow {
             UnityEngine.Debug.Log("dir path " + dirPath + " projectName " + projectName);
 
 
-            string timeTick = System.DateTime.UtcNow.Ticks.ToString();
+
             string gameobjectScale = CalculateScale(prefabs);
             if (androidBuild)
             {
@@ -509,24 +520,24 @@ public class BundleBuildWindowEditor : EditorWindow {
         BundleEventTriggerDesigner[] bundleEventTriggers = prefabs.GetComponentsInChildren<BundleEventTriggerDesigner>();
         allTriggerToDesingerConfig.allJson = new List<triggerToDesingerJson>();
         //给持续数据赋值以及修改物体标号
-        for (int i = 0;i < bundleEventTriggers.Length; i++)
+        for (int i = 0; i < bundleEventTriggers.Length; i++)
         {
             //标记设计师
             GameObject desingerObj = bundleEventTriggers[i].gameObject;
-            desingerObj.name += string.Format("--D[{0}]",i);//Desinger
+            desingerObj.name += string.Format("--D[{0}]", i);//Desinger
             EditorUtility.SetDirty(desingerObj);
             triggerToDesingerJson temp = new triggerToDesingerJson();
-            
-            //增加触发器
-            BundleEventTrigger bet = desingerObj.AddComponent<BundleEventTrigger>();
-            //赋值形成可预览的物体
-            bet.triggers = bundleEventTriggers[i].bundleEventTriggerInfos;
+          
             //给设计师中所有被操作物体做标记
             if (bundleEventTriggers[i].bundleEventTriggerInfos != null && bundleEventTriggers[i].bundleEventTriggerInfos.Count > 0)
             {
                 for (int j = 0; j < bundleEventTriggers[i].bundleEventTriggerInfos.Count; j++)
                 {
                     //属于设计师名 + 标号
+                    if (bundleEventTriggers[i].bundleEventTriggerInfos[j].target == null)
+                    {
+                        UnityEngine.Debug.LogError("检查BundleEventTriggerInfo组件，存在无target值的设计师组件");
+                    }
                     string str = bundleEventTriggers[i].bundleEventTriggerInfos[j].target.name;
                     //如果有重复事件添加在同一个物体上，Desinger只需要标记一次
                     if (str.Contains("--D["))
@@ -536,9 +547,13 @@ public class BundleBuildWindowEditor : EditorWindow {
                     else
                     {
                         bundleEventTriggers[i].bundleEventTriggerInfos[j].target.name += string.Format("{0}->{1}[{2}]", desingerObj.name, bundleEventTriggers[i].bundleEventTriggerInfos[j].method.name, j);
-                    } 
+                    }
                 }
             }
+            //增加触发器
+            BundleEventTrigger bet = desingerObj.AddComponent<BundleEventTrigger>();
+            //赋值形成可预览的物体
+            bet.triggers = bundleEventTriggers[i].bundleEventTriggerInfos;
             //修改完成后记录
             temp.objName = desingerObj.name;
             temp.bundleEventTriggerDesigners = bundleEventTriggers[i].GetJsonInfo();
@@ -571,9 +586,10 @@ public class BundleBuildWindowEditor : EditorWindow {
                     customMB.Add(mb);
                 }
             }
-
             compoment = customMB.ToArray();
             UnityEngine.Debug.Log("compoment num" + compoment.Length);
+            //写入dll名称
+            sw.WriteLine(dllName);
             sw.WriteLine(compoment.Length);
             if (compoment != null && compoment.Length > 0)
             {
@@ -668,6 +684,10 @@ public class BundleBuildWindowEditor : EditorWindow {
                         cmd = cmd + f + " ";
                 }
             }
+            //这里无法确认新的dll文件已经生成，在打包前加入打包列表时AssetDatabase.LoadAssetAtPath加载不出来
+            //所以这里很无奈只能把已有的文件改成将来生成的文件（生成的文件活主动替换该旧文件）索引
+            AssetDatabase.RenameAsset($"Assets/Resources/BundleConfig/{lastDllName}", dllName);
+            AssetDatabase.Refresh();
             string byteFileFullName = "\"" + configPath + "/" + dllName + "\"";
             cmd += " -out:" + byteFileFullName;
             UnityEngine.Debug.Log(cmd);
@@ -696,7 +716,7 @@ public class BundleBuildWindowEditor : EditorWindow {
     private ArrayList GetBundleScripts() {
         ArrayList fileList = new ArrayList();
         BundleEventTriggerDesigner[] bundleEventTriggers = prefabs.GetComponentsInChildren<BundleEventTriggerDesigner>();
-        if (bundleEventTriggers != null  && bundleEventTriggers.Length > 0)
+        if (bundleEventTriggers != null && bundleEventTriggers.Length > 0)
         {
             for (int i = 0; i < bundleEventTriggers.Length; i++)
             {
@@ -812,14 +832,7 @@ public class BundleBuildWindowEditor : EditorWindow {
         configFilePath = Application.dataPath + "/Resources/BundleConfig/config.bytes";
         bundleRecordFile = Application.dataPath + "/Resources/BundleConfig/bundleRecord.bytes";
         eventTriggerConfigPath = Application.dataPath + "/Resources/BundleConfig/eventTriggerConfig.json";
-        if (File.Exists(configFilePath))
-        {
-            sr = new StreamReader(new FileStream(configFilePath, FileMode.Open));
-            unityInstallPath = sr.ReadLine();
-            scriptPath = sr.ReadLine();
-            savePath = sr.ReadLine();
-            sr.Close();
-        }
+        ReadConfig(configFilePath);
         tips += "选择Unity安装路径(Editor文件夹的上级目录)\n";
         tips += "选择打包脚本文件夹\n";
         tips += "选择Bundle保存文件夹\n";
@@ -836,6 +849,27 @@ public class BundleBuildWindowEditor : EditorWindow {
         allTriggerToDesingerConfig = new AllTriggerToDesingerJson();
         isCreateJson = false;
     }
+    private void ReadConfig(string path) {
+        if (File.Exists(path))
+        {
+            sr = new StreamReader(new FileStream(path, FileMode.Open));
+            unityInstallPath = sr.ReadLine();
+            scriptPath = sr.ReadLine();
+            savePath = sr.ReadLine();
+            lastDllName = sr.ReadLine();
+            sr.Close();
+        }
+    }
+
+    private void WriteConfig(string path) {
+        sw = new StreamWriter(new FileStream(path, FileMode.OpenOrCreate));
+        sw.WriteLine(unityInstallPath);
+        sw.WriteLine(scriptPath);
+        sw.WriteLine(savePath);
+        sw.WriteLine(dllName);//保存这次打包的dll名称
+        sw.Flush();
+        sw.Close();
+    }
     /// <summary>
     /// 通过注册表获取安装路径
     /// </summary>
@@ -850,7 +884,7 @@ public class BundleBuildWindowEditor : EditorWindow {
         return str;
     }
 
-   
+
 }
 
 

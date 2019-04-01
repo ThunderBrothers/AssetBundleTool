@@ -50,6 +50,11 @@ public class BundleEventTriggerInfo {
         method = _method;
         triggerType = (BundleEventTriggerType)_triggerType;
     }
+    public BundleEventTriggerInfo(GameObject _target, UnityEngine.Object _method, BundleEventTriggerType _triggerType) {
+        target = _target;
+        method = _method;
+        triggerType = _triggerType;
+    }
 
     public GameObject target;
     public UnityEngine.Object method;

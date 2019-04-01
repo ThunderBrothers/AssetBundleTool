@@ -14,7 +14,20 @@ public class BundleEventTrigger : MonoBehaviour, IPointerClickHandler, IEventSys
     //[SerializeField]
     public List<BundleEventTriggerInfo> selfBundleEventTriggerInfo = new List<BundleEventTriggerInfo>();
     //留作测试用生成预览
-    //public BundleEventTriggerDesigner selfDesigner;
+    public bool preview = false;
+    public bool debug = false;
+    public BundleEventTriggerDesigner selfDesigner;
+
+    private void Start() {
+        if (preview)
+        {
+            selfDesigner = gameObject.GetComponent<BundleEventTriggerDesigner>();
+            if (selfDesigner != null)
+            {
+                selfBundleEventTriggerInfo = selfDesigner.bundleEventTriggerInfos;
+            }
+        }
+    }
 
     public void AddTriggerByInfo(BundleEventTriggerInfo info) {
         if (info != null)
@@ -38,7 +51,7 @@ public class BundleEventTrigger : MonoBehaviour, IPointerClickHandler, IEventSys
         }
         set { selfBundleEventTriggerInfo = value; }
     }
-  
+
     /// <summary>
     /// 执行事件
     /// </summary>
@@ -54,31 +67,59 @@ public class BundleEventTrigger : MonoBehaviour, IPointerClickHandler, IEventSys
                 //获取targer上所有组件
                 //GetComponents<T>和GetComponents(Type)是获取不到运行时加载出来的组件必须这样获取后处理
                 Component[] components = ent.target.GetComponents<Component>();
-                for (int j = 0;j < components.Length;j++)
+                for (int j = 0; j < components.Length; j++)
                 {
                     Type typecomponents = components[j].GetType();
-                    if (typecomponents == type)
+                    //Debug.Log("typecomponents =" + typecomponents + "         ent.method = " + type);
+                    if (preview)
                     {
-                        //Debug.Log("触发" + ent.triggerType + "事件---->操作对象" + ent.target + "---->执行" + typecomponents);
-                        //执行
-                        ((BundleEventInfoBase)components[j]).OnBundleAction(eventData);
+                        if (typecomponents.FullName == ent.method.name)
+                        {
+                            if (debug)
+                            {
+                                Debug.Log("预览模式触发" + ent.triggerType + "事件---->操作对象" + ent.target + "---->执行" + typecomponents);
+                            }
+                            //执行
+                            ((BundleEventInfoBase)components[j]).OnBundleAction(eventData);
+                        }
+                    }
+                    else
+                    {
+                        if (typecomponents == type)
+                        {
+                            if (debug)
+                            {
+                                Debug.Log("View触发" + ent.triggerType + "事件---->操作对象" + ent.target + "---->执行" + typecomponents);
+                            }
+                            //执行
+                            ((BundleEventInfoBase)components[j]).OnBundleAction(eventData);
+                        }
                     }
                 }
-            }     
+            }
         }
     }
     public virtual void OnPointerEnter(PointerEventData eventData) {
-        //Debug.Log("GazeOn");
+        if (debug)
+        {
+            Debug.Log("GazeOn");
+        }
         Execute(BundleEventTriggerType.GazeOn, eventData);
     }
 
     public virtual void OnPointerExit(PointerEventData eventData) {
-        //Debug.Log("GazeOff");
+        if (debug)
+        {
+            Debug.Log("GazeOff");
+        }
         Execute(BundleEventTriggerType.GazeOff, eventData);
     }
 
     public virtual void OnPointerClick(PointerEventData eventData) {
-        //Debug.Log("GazeClick");
+        if (debug)
+        {
+            Debug.Log("GazeClick");
+        }
         Execute(BundleEventTriggerType.GazeClick, eventData);
     }
 }

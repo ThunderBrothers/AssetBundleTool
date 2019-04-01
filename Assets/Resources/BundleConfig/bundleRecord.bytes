@@ -1,10 +1,11 @@
-Tar
+CarTest 1
+output636867786636090287.bytes
 4
-BundleEventTrigger
-Tar/Trigger--D[0]
-SetActive_True
-Tar/CubeTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
 SetActive_False
-Tar/CubeTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
+CarTest 1/Anim_JiaojieCube--D[0]->SetActive_False[1]->SetActive_True[2]
+SetActive_True
+CarTest 1/Anim_JiaojieCube--D[0]->SetActive_False[1]->SetActive_True[2]
 SetActive_Toggle
-Tar/SphereTrigger--D[0]->SetActive_Toggle[2]
+CarTest 1/Anim_MainCube--D[0]->SetActive_Toggle[0]
+BundleEventTrigger
+CarTest 1/Cube--D[0]
