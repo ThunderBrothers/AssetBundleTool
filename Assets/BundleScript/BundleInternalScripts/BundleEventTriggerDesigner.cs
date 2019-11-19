@@ -19,6 +19,10 @@ public class BundleEventTriggerDesigner : MonoBehaviour
     //public bool recordDebugLog = false;
     [Header("可排序ObjList")]
     public List<BundleEventTriggerInfo> bundleEventTriggerInfos = new List<BundleEventTriggerInfo>();
+    /// <summary>
+    /// 从BundleEventTrigger设计师组件获取json格式数据
+    /// </summary>
+    /// <returns></returns>
     public BundleEventTriggerDesignerJson GetJsonInfo() {
         BundleEventTriggerDesignerJson temp = new BundleEventTriggerDesignerJson();
 
@@ -28,18 +32,27 @@ public class BundleEventTriggerDesigner : MonoBehaviour
             betj.target = bundleEventTriggerInfos[i].target.name;
             betj.method = bundleEventTriggerInfos[i].method.name;
             betj.triggerType = (int)bundleEventTriggerInfos[i].triggerType;
+            betj.parameterMode = (int)bundleEventTriggerInfos[i].parameterMode;
+            //根据类型赋值
+            switch (bundleEventTriggerInfos[i].parameterMode)
+            {
+                case BundleListenerMode.None:
+                    ; break;
+                case BundleListenerMode.Void:
+                    ; break;
+                case BundleListenerMode.Int:
+                    betj.IntParameter = bundleEventTriggerInfos[i].IntParameter; break;
+                case BundleListenerMode.Float:
+                    betj.FloatParameter = bundleEventTriggerInfos[i].FloatParameter; break;
+                case BundleListenerMode.String:
+                    betj.StringParameter = bundleEventTriggerInfos[i].StringParameter; break;
+                case BundleListenerMode.Bool:
+                    betj.BoolParameter = bundleEventTriggerInfos[i].BoolParameter; break;
+            }
             temp.bundleEventTriggerJsons.Add(betj);
         }
         return temp;
     }
 }
-///// <summary>
-///// 单个触发事件信息
-///// </summary>
-//[Serializable]
-//public class BundleEventTriggerInfo {
-//    public GameObject target;
-//    public UnityEngine.Object method;
-//    public BundleEventTriggerType triggerType;
-//}
+
 

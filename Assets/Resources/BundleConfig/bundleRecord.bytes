@@ -1,7 +1,11 @@
-GameObject 1
-output636973938725730275.bytes
-2
+Single 1
+output636864166881321545.bytes
+4
 BundleEventTrigger
-GameObject 1/Cube--D[0]
+Single 1/Trigger--D[0]
+SetActive_True
+Single 1/SphereTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
+SetActive_False
+Single 1/SphereTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
 SetActive_Toggle
-GameObject 1/SphereCube--D[0]->SetActive_Toggle[0]
+Single 1/CapsuleTrigger--D[0]->SetActive_Toggle[2]

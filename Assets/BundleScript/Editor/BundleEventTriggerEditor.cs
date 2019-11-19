@@ -33,36 +33,64 @@ public class BundleEventTriggerEditor : Editor
         if (serializedProperty != null)
         {
             eventInfo = new ReorderableList(serializedObject, serializedProperty, true, true, true, true);
+            eventInfo.elementHeight = 50;
             //标题
             eventInfo.drawHeaderCallback = (Rect rect) =>
             {
-                EditorGUI.LabelField(rect, "Bundle触发器设置       Target物体      执行脚本         触发类型");
+                EditorGUI.LabelField(rect, "Bundle触发器设置       Target物体      执行脚本    执行参数类型    参数      触发类型");
             };
             //元素绘制
             eventInfo.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
             {
                 SerializedProperty element = eventInfo.serializedProperty.GetArrayElementAtIndex(index);
                 rect.y += 2;
-                //脚本
-                SerializedProperty _method = element.FindPropertyRelative("method");
-                //参数类型
-                SerializedProperty _mode = element.FindPropertyRelative("triggerType");
                 //目标物体
                 SerializedProperty _target = element.FindPropertyRelative("target");
+                //脚本
+                SerializedProperty _method = element.FindPropertyRelative("method");
+                //触发类型
+                SerializedProperty _mode = element.FindPropertyRelative("triggerType");
+                //参数类型
+                SerializedProperty _parameterMode = element.FindPropertyRelative("parameterMode");
+                //执行物体界面
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, 120, EditorGUIUtility.singleLineHeight), _target, GUIContent.none);
-                EditorGUI.PropertyField(new Rect(rect.x + 120, rect.y, rect.width - 120 - 120, EditorGUIUtility.singleLineHeight), _method, GUIContent.none);
-                //根据有无脚本绘制界面
-                if(_method.objectReferenceValue != null){
-                    EditorGUI.PropertyField(new Rect(rect.x + rect.width - 120, rect.y, 120, EditorGUIUtility.singleLineHeight), _mode, GUIContent.none);
-                    //执行
-                    if (_mode.enumValueIndex > 1)
+                //执行函数界面
+                EditorGUI.PropertyField(new Rect(rect.x + 120, rect.y, rect.width - 120, EditorGUIUtility.singleLineHeight), _method, GUIContent.none);
+                //根据有脚本绘制界面
+                //非继承自BundleEventInfoParameterBase的函数不需要含有参数
+                if (_method.objectReferenceValue != null)
+                {
+                    EditorGUI.PropertyField(new Rect(rect.x , rect.y + 20, 80, EditorGUIUtility.singleLineHeight), _mode, GUIContent.none);
+                    Type type = ((MonoScript)_method.objectReferenceValue).GetClass();
+                    //当前执行事件是含参数的
+                    if (type.IsSubclassOf(typeof(BundleEventInfoParameterBase)))
                     {
-                        //根据选择参数类型填入参数
-                        //待续
-                        switch (_mode.enumValueIndex)
+                        EditorGUI.PropertyField(new Rect(rect.x + 120, rect.y + 20, 50, EditorGUIUtility.singleLineHeight), _parameterMode, GUIContent.none);
+                        //参数类型不为viod
+                        if (_parameterMode.enumValueIndex > 1)
                         {
-                            case (int)PersistentListenerMode.EventDefined:;break;
-                            default:;return;
+                            //绘制参数界面
+                            //根据选择参数类型填入参数
+                            switch (_parameterMode.enumValueIndex - 1)
+                            {
+                                case (int)BundleListenerMode.Int:
+                                    //参数
+                                    SerializedProperty _IntParameter = element.FindPropertyRelative("IntParameter");
+                                    _IntParameter.intValue = EditorGUI.IntField(new Rect(rect.x + 180, rect.y + 20, rect.width - 198, EditorGUIUtility.singleLineHeight), _IntParameter.intValue); break;
+                                case (int)BundleListenerMode.Float:
+                                    //参数
+                                    SerializedProperty _FloatParameter = element.FindPropertyRelative("FloatParameter");
+                                    _FloatParameter.floatValue = EditorGUI.FloatField(new Rect(rect.x + 180, rect.y + 20, rect.width - 198, EditorGUIUtility.singleLineHeight), _FloatParameter.floatValue); break;
+                                case (int)BundleListenerMode.String:
+                                    //参数
+                                    SerializedProperty _StringParameter = element.FindPropertyRelative("StringParameter");
+                                    _StringParameter.stringValue = EditorGUI.TextField(new Rect(rect.x + 180, rect.y + 20, rect.width - 198, EditorGUIUtility.singleLineHeight), _StringParameter.stringValue); break;
+                                case (int)BundleListenerMode.Bool:
+                                    //参数
+                                    SerializedProperty _BoolParameter = element.FindPropertyRelative("BoolParameter");
+                                    _BoolParameter.boolValue = EditorGUI.Toggle(new Rect(rect.x + 180, rect.y + 20, rect.width - 198, EditorGUIUtility.singleLineHeight), _BoolParameter.boolValue); break;
+                                default:; return;
+                            }
                         }
                     }
                 } 
@@ -181,7 +209,28 @@ public class BundleEventTriggerEditor : Editor
         eventInfo.index = eventInfo.serializedProperty.arraySize - 1;
         SerializedProperty element = eventInfo.serializedProperty.GetArrayElementAtIndex(eventInfo.index);
         element.FindPropertyRelative("target").objectReferenceValue = null;
-        element.FindPropertyRelative("method").objectReferenceValue = AssetDatabase.LoadAssetAtPath(data.scriptPath, typeof(UnityEngine.Object)) as UnityEngine.Object;
+        UnityEngine.Object _method = AssetDatabase.LoadAssetAtPath(data.scriptPath, typeof(UnityEngine.Object)) as UnityEngine.Object;
+        element.FindPropertyRelative("method").objectReferenceValue = _method;
+        element.FindPropertyRelative("triggerType").enumValueIndex = 2;
+        Type type = ((MonoScript)_method).GetClass();
+        //当前执行事件是含参数的，继承自BundleEventInfoParameterBase
+        if (type.IsSubclassOf(typeof(BundleEventInfoParameterBase)))
+        {
+            element.FindPropertyRelative("parameterMode").enumValueIndex = 1;
+            element.FindPropertyRelative("IntParameter").intValue = 0;
+            element.FindPropertyRelative("FloatParameter").floatValue = 0f;
+            element.FindPropertyRelative("StringParameter").stringValue = null;
+            element.FindPropertyRelative("BoolParameter").boolValue = false;
+        }
+        //不带参数，继承自BundleEventInfoBase
+        else
+        {
+            element.FindPropertyRelative("parameterMode").enumValueIndex = 0;
+            element.FindPropertyRelative("IntParameter").intValue = 0;
+            element.FindPropertyRelative("FloatParameter").floatValue = 0f;
+            element.FindPropertyRelative("StringParameter").stringValue = null;
+            element.FindPropertyRelative("BoolParameter").boolValue = false;
+        }
         //这里自定义了添加 所以要应用界面逆向修改List数组
         serializedObject.ApplyModifiedProperties();
     }
@@ -204,7 +253,6 @@ public class BundleEventTriggerEditor : Editor
         customScriptspath = "Assets" + results[1];
         sr.Close();
     }
-
     /// <summary>
     /// 选择回调
     /// </summary>
