@@ -6,9 +6,10 @@ using System.Reflection;
 using System;
 using Newtonsoft.Json;
 
-namespace stARkit.Cloud.ARPackageSDK {
-
-    public class AssetBundleManager : MonoBehaviour {
+namespace stARkit.Cloud.ARPackageSDK
+{
+    public class AssetBundleManager : MonoBehaviour
+    {
         private List<Shader> shaderList = new List<Shader>();
         private List<Material> materials = new List<Material>();
         private List<GameObject> assetLoaded = new List<GameObject>();
@@ -28,21 +29,27 @@ namespace stARkit.Cloud.ARPackageSDK {
         public string path;
         public string name;
 
-        private void Awake() {
+        private void Awake()
+        {
             //Debug.Log(Application.persistentDataPath + "/test.assetbundle");
             Instance = this;
         }
 
-        private void Update() {
+        private void Update()
+        {
             if (Input.GetKeyDown(KeyCode.Q))
             {
-                StartCoroutine(LoadProject(path + name + ".assetbundle"));
+                StartCoroutine(LoadProject(path + "/" + name + ".assetbundle"));
+            }
+            if (Input.GetKeyDown(KeyCode.U))
+            {
+                UnloadAsset();
             }
         }
-
-        IEnumerator  LoadProject(string filePath) {
+        IEnumerator LoadProject(string filePath)
+        {
             AssetBundle bundle = AssetBundle.LoadFromFile(filePath);
-            LoadAssetBundle(bundle,transform);
+            LoadAssetBundle(bundle, transform);
             yield return null;
             LoadJsonForTrigger(bundle);
             yield return null;
@@ -51,7 +58,8 @@ namespace stARkit.Cloud.ARPackageSDK {
         }
 
 
-        public void UnloadAsset() {
+        public void UnloadAsset()
+        {
             foreach (GameObject g in assetLoaded)
             {
                 if (g != null) DestroyImmediate(g);
@@ -63,7 +71,8 @@ namespace stARkit.Cloud.ARPackageSDK {
             dll = null;
         }
 
-        public void LoadAssetBundle(AssetBundle content, Transform container) {
+        public void LoadAssetBundle(AssetBundle content, Transform container)
+        {
             if (content == null) return;
             string[] names = content.GetAllAssetNames();
             foreach (string n in names)
@@ -75,8 +84,8 @@ namespace stARkit.Cloud.ARPackageSDK {
                     shaderList.Add(s);
                 }
             }
-            Shader.WarmupAllShaders();
-            ResetAllMaterial(content);
+            //Shader.WarmupAllShaders();
+            //ResetAllMaterial(content);
             TextAsset config = content.LoadAsset<TextAsset>("bundleRecord");
             List<string> gameObjectNames = new List<string>();
             List<string> scriptNames = new List<string>();
@@ -121,7 +130,7 @@ namespace stARkit.Cloud.ARPackageSDK {
                 sr.Close();
                 ms.Close();
 
-                mainObj = (GameObject)GameObject.Instantiate((GameObject)content.LoadAsset(contentName));
+                mainObj = Instantiate(content.mainAsset as GameObject);
                 assetLoaded.Add(mainObj);
                 mainObj.transform.parent = container;
                 mainObj.transform.position = container.position;
@@ -130,12 +139,12 @@ namespace stARkit.Cloud.ARPackageSDK {
                 mainObj.name = contentName;
                 if (dll != null)
                 {
-                    for (int i = 0; i < gameObjectNames.Count; i++)
+                    for (int i = 0;i < gameObjectNames.Count;i++)
                     {
                         //Debug.Log("try to load " + scriptNames[i] + " from dll in bundle");
                         System.Type t = dll.GetType(scriptNames[i]);
-
-                        Transform trans = mainObj.transform.parent.Find(gameObjectNames[i]);
+                        string objName = gameObjectNames[i].Substring(gameObjectNames[i].LastIndexOf("/") + 1, gameObjectNames[i].Length - gameObjectNames[i].LastIndexOf("/") - 1);
+                        Transform trans = mainObj.transform.parent.FindObjFormChild(objName);
                         Component res = null;
                         if (trans != null && t != null)
                         {
@@ -145,21 +154,22 @@ namespace stARkit.Cloud.ARPackageSDK {
                     }
                 }
                 //Debug.Log("start reset shader!!!!");
-                ResetGameObjectShader(mainObj.transform);
+                //ResetGameObjectShader(mainObj.transform);
                 //Shader.WarmupAllShaders();
                 //content.Unload(false);
             }
         }
 
 
-        public void LoadJsonForTrigger(AssetBundle content) {
+        public void LoadJsonForTrigger(AssetBundle content)
+        {
             TextAsset aa = content.LoadAsset<TextAsset>("eventTriggerConfig");
             if (aa != null)
             {
                 triggerDesingerJsonInfos = JsonConvert.DeserializeObject<AllTriggerToDesingerJson>(aa.text);
                 TextAsset asset = content.LoadAsset<TextAsset>(dllName);
                 dll = System.Reflection.Assembly.Load(asset.bytes);
-                for (int i = 0; i < triggerDesingerJsonInfos.allJson.Count; i++)
+                for (int i = 0;i < triggerDesingerJsonInfos.allJson.Count;i++)
                 {
                     string triggerName = triggerDesingerJsonInfos.allJson[i].objName;
                     List<BundleEventTriggerInfo> bundleEventTriggerInfos = new List<BundleEventTriggerInfo>();
@@ -167,9 +177,9 @@ namespace stARkit.Cloud.ARPackageSDK {
                     UnityEngine.Object method;
                     BundleEventTriggerType triggerType;
                     List<BundleEventTriggerJson> bundleEventTriggerJsons = triggerDesingerJsonInfos.allJson[i].bundleEventTriggerDesigners.bundleEventTriggerJsons;
-                    for (int j = 0; j < bundleEventTriggerJsons.Count; j++)
+                    for (int j = 0;j < bundleEventTriggerJsons.Count;j++)
                     {
-                        target = mainObj.transform.Find(bundleEventTriggerJsons[j].target).gameObject;
+                        target = mainObj.transform.FindObjFormChild(bundleEventTriggerJsons[j].target).gameObject;
                         Type componentType = dll.GetType(bundleEventTriggerJsons[j].method);
                         Component mb = target.GetComponent(componentType);
                         method = mb;
@@ -180,7 +190,8 @@ namespace stARkit.Cloud.ARPackageSDK {
                 }
             }
         }
-        public List<BundleEventTriggerInfo> GetJsonForTrigger(string triggerName) {
+        public List<BundleEventTriggerInfo> GetJsonForTrigger(string triggerName)
+        {
             List<BundleEventTriggerInfo> selfBundleEventTriggerInfo = new List<BundleEventTriggerInfo>();
             if (triggerInfoCache.ContainsKey(triggerName))
             {
@@ -194,19 +205,24 @@ namespace stARkit.Cloud.ARPackageSDK {
         ///
         /// </summary>
         /// <param name="content">bundle</param>
-        public void HandleJsonForTrigger(AssetBundle content) {
+        public void HandleJsonForTrigger(AssetBundle content)
+        {
             TextAsset asset = content.LoadAsset<TextAsset>(dllName);
             if (asset != null)
             {
                 dll = System.Reflection.Assembly.Load(asset.bytes);
 
-                for (int i = 0; i < triggerInfoCache.Count; i++)
+                for (int i = 0;i < triggerInfoCache.Count;i++)
                 {
                     //获取BundleEventTrigger组件物体
                     GameObject triggerObj = GameObject.Find(triggerDesingerJsonInfos.allJson[i].objName);
+                    if (triggerObj == null)
+                    {
+                        triggerObj = mainObj.transform.FindObjFormChild(triggerDesingerJsonInfos.allJson[i].objName).gameObject;
+                    }
                     //获取物体上所有组件信息
                     Component[] components = triggerObj.GetComponents<Component>();
-                    for (int j = 0; j < components.Length; j++)
+                    for (int j = 0;j < components.Length;j++)
                     {
                         Type typecomponents = components[j].GetType();
                         //遍历所有组件如果是BundleEventTrigger就赋值
@@ -226,7 +242,8 @@ namespace stARkit.Cloud.ARPackageSDK {
         /// </summary>
         /// <param name="t"></param>
         /// <param name="value"></param>
-        private void TriggerAssignment(Component t, string value) {
+        private void TriggerAssignment(Component t, string value)
+        {
             //获取所有公共属性
             PropertyInfo[] infos = t.GetType().GetProperties();
             //获取所有公共值
@@ -241,7 +258,7 @@ namespace stARkit.Cloud.ARPackageSDK {
                     {
                         Type type = t.GetType();
                         MethodInfo method = type.GetMethod("AddTriggerByElement");
-                        for (int i = 0; i < triggerInfoCache[value].Count; i++)
+                        for (int i = 0;i < triggerInfoCache[value].Count;i++)
                         {
                             object[] parameters = new object[] { triggerInfoCache[value][i].target, triggerInfoCache[value][i].method, triggerInfoCache[value][i].triggerType };
                             method.Invoke(t, parameters);
@@ -265,7 +282,8 @@ namespace stARkit.Cloud.ARPackageSDK {
             }
         }
 
-        public void ResetAllMaterial(AssetBundle content) {
+        public void ResetAllMaterial(AssetBundle content)
+        {
             object[] ms = content.LoadAllAssets(typeof(Material));
             //if(ms != null) Debug.Log("material count " + ms.Length);
             foreach (object o in ms)
@@ -298,7 +316,8 @@ namespace stARkit.Cloud.ARPackageSDK {
             }
         }
 
-        private IEnumerator SetMaterial(GameObject target, Material[] ms, bool activeSelf) {
+        private IEnumerator SetMaterial(GameObject target, Material[] ms, bool activeSelf)
+        {
             yield return 1;
             target.GetComponent<Renderer>().sharedMaterials = ms;
             target.GetComponent<Renderer>().sharedMaterial = ms[0];
@@ -307,7 +326,8 @@ namespace stARkit.Cloud.ARPackageSDK {
             target.SetActive(activeSelf);
         }
 
-        private void ResetGameObjectShader(Transform target) {
+        private void ResetGameObjectShader(Transform target)
+        {
             //2019.1.23   赵子夜修尝试修复精灵体组件材质丢失问题
             //MeshRenderer meshRenderer = target.GetComponent<MeshRenderer>();
             Renderer renderer = target.GetComponent<Renderer>();
@@ -316,7 +336,7 @@ namespace stARkit.Cloud.ARPackageSDK {
             {
                 int mcount = renderer.sharedMaterials.Length;
                 Material[] newMaterials = new Material[mcount];
-                for (int j = 0; j < mcount; j++)
+                for (int j = 0;j < mcount;j++)
                 {
                     Material _mater = renderer.sharedMaterials[j];
                     // Debug.Log("check material " + _mater.name);
@@ -360,10 +380,41 @@ namespace stARkit.Cloud.ARPackageSDK {
             }
 
 
-            for (int i = 0; i < target.childCount; i++)
+            for (int i = 0;i < target.childCount;i++)
             {
                 ResetGameObjectShader(target.GetChild(i));
             }
+        }
+    }
+    public static class Expand
+    {
+        public static Transform FindObjFormChild(this Transform transform, string objname)
+        {
+            Transform obj = null;
+            if (transform.name == objname)
+            {
+                obj = transform;
+                return obj;
+            }
+
+            if (transform.childCount > 0)
+            {
+                Transform child;
+                for (int i = 0;i < transform.childCount;i++)
+                {
+                    child = transform.GetChild(i);
+                    if (child.name == objname)
+                    {
+                        obj = child;
+                        return obj;
+                    }
+                    if (obj == null)
+                    {
+                        obj = child.FindObjFormChild(objname);
+                    }
+                }
+            }
+            return obj;
         }
     }
 }

@@ -1,11 +1,7 @@
-CarTest 1
-output636867786636090287.bytes
-4
-SetActive_False
-CarTest 1/Anim_JiaojieCube--D[0]->SetActive_False[1]->SetActive_True[2]
-SetActive_True
-CarTest 1/Anim_JiaojieCube--D[0]->SetActive_False[1]->SetActive_True[2]
-SetActive_Toggle
-CarTest 1/Anim_MainCube--D[0]->SetActive_Toggle[0]
+GameObject 1
+output636973938725730275.bytes
+2
 BundleEventTrigger
-CarTest 1/Cube--D[0]
+GameObject 1/Cube--D[0]
+SetActive_Toggle
+GameObject 1/SphereCube--D[0]->SetActive_Toggle[0]
