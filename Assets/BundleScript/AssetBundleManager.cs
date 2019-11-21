@@ -208,8 +208,8 @@ namespace stARkit.Cloud.ARPackageSDK
                                 temp.parameterMode = BundleListenerMode.Bool; break;
                             default: break;
                         }
-                        triggerInfoCache.Add(triggerName, bundleEventTriggerInfos);
                     }
+                    triggerInfoCache.Add(triggerName, bundleEventTriggerInfos);
                 }
             }
         }

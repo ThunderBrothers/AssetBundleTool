@@ -1,7 +1,7 @@
-Parameter 1
-output637099286834301444.bytes
+ParameterMore 1
+output637099294440477283.bytes
 2
 BundleEventTrigger
-Parameter 1/Trigger--D[0]
+ParameterMore 1/Trigger--D[0]
 SetColor_ByString
-Parameter 1/CapsuleTrigger--D[0]->SetColor_ByString[0]
+ParameterMore 1/CapsuleTrigger--D[0]->SetColor_ByString[0]->SetColor_ByString[1]->SetColor_ByString[2]
