@@ -1,11 +1,7 @@
-Single 1
-output636864166881321545.bytes
-4
+Parameter 1
+output637099286834301444.bytes
+2
 BundleEventTrigger
-Single 1/Trigger--D[0]
-SetActive_True
-Single 1/SphereTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
-SetActive_False
-Single 1/SphereTrigger--D[0]->SetActive_True[0]->SetActive_False[1]
-SetActive_Toggle
-Single 1/CapsuleTrigger--D[0]->SetActive_Toggle[2]
+Parameter 1/Trigger--D[0]
+SetColor_ByString
+Parameter 1/CapsuleTrigger--D[0]->SetColor_ByString[0]

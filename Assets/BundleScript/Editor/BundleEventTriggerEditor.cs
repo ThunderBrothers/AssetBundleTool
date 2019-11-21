@@ -253,6 +253,7 @@ public class BundleEventTriggerEditor : Editor
         customScriptspath = "Assets" + results[1];
         sr.Close();
     }
+
     /// <summary>
     /// 选择回调
     /// </summary>

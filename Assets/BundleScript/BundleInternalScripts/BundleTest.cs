@@ -9,12 +9,12 @@ public class BundleTest : MonoBehaviour {
 
 
     public GameObject obj;
-    public BoxCollider Collider;
 
 
     // Use this for initialization
     void Start() {
-        Collider = obj.GetComponent<BoxCollider>();
+
+        obj.SendMessage("LogSomething", SendMessageOptions.RequireReceiver);
     }
 
 }

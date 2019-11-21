@@ -5,8 +5,9 @@
 /// </summary>
 public class SetActive_Toggle : BundleEventInfoBase {
     public  override void OnBundleAction(PointerEventData eventData) {
-        gameObject.SetActive(!gameObject.activeSelf);
-        SendMsg((!gameObject.activeSelf).ToString());
+        bool active = !gameObject.activeSelf;
+        gameObject.SetActive(active);
+        SendMsg((active).ToString());
     }
 
     public override void OnReceiveMsg(string msg) {
