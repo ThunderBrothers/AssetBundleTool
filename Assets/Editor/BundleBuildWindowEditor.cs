@@ -269,7 +269,6 @@ public class BundleBuildWindowEditor : EditorWindow
     {
         //生成文件名
         string timeTick = System.DateTime.UtcNow.Ticks.ToString();
-
         //在生成记录摘要前配置BundleTrigger记录
         //BundleTrigger记录会标记被操作物体(修改其名称，给其挂载对应执行脚本)
         //配置后在进行脚本配置信息

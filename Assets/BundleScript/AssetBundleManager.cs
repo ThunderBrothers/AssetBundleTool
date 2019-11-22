@@ -115,17 +115,6 @@ namespace stARkit.Cloud.ARPackageSDK
                 if (asset != null)
                 {
                     dll = System.Reflection.Assembly.Load(asset.bytes);
-                    /**
-                    Debug.Log("load dll success!");
-                    System.Type[] tps = dll.GetTypes();
-                    if (tps != null && tps.Length > 0)
-                    {
-                        foreach (System.Type tp in tps)
-                        {
-                            Debug.Log("found in dll " + tp.FullName);
-                        }
-                    }
-                    **/
                 }
                 sr.Close();
                 ms.Close();
@@ -150,22 +139,17 @@ namespace stARkit.Cloud.ARPackageSDK
                         {
                             res = trans.gameObject.AddComponent(t);
                         }
-                        //Debug.Log("add component success?" + (res != null));
                     }
                 }
-                //Debug.Log("start reset shader!!!!");
-                //ResetGameObjectShader(mainObj.transform);
-                //Shader.WarmupAllShaders();
-                //content.Unload(false);
             }
         }
-
 
         public void LoadJsonForTrigger(AssetBundle content)
         {
             TextAsset aa = content.LoadAsset<TextAsset>("eventTriggerConfig");
             if (aa != null)
             {
+                //兼容1.0版本的Bundle逻辑BundleEventTriggerJson的无参数类型的Json解析
                 triggerDesingerJsonInfos = JsonConvert.DeserializeObject<AllTriggerToDesingerJson>(aa.text);
                 TextAsset asset = content.LoadAsset<TextAsset>(dllName);
                 dll = System.Reflection.Assembly.Load(asset.bytes);
@@ -225,7 +209,6 @@ namespace stARkit.Cloud.ARPackageSDK
 
         /// <summary>
         /// 将json数据处理赋值给BundleEventTrigger组件
-        ///
         /// </summary>
         /// <param name="content">bundle</param>
         public void HandleJsonForTrigger(AssetBundle content)
@@ -307,6 +290,12 @@ namespace stARkit.Cloud.ARPackageSDK
                                     parameters = new object[] { triggerInfoCache[value][i].target, triggerInfoCache[value][i].method, triggerInfoCache[value][i].triggerType, triggerInfoCache[value][i].parameterMode, triggerInfoCache[value][i].BoolParameter }; break;
                                 default:
                                     parameters = new object[] { triggerInfoCache[value][i].target, triggerInfoCache[value][i].method, triggerInfoCache[value][i].triggerType }; break;
+                            }
+                            //兼容1.0版本的Bundle逻辑只有AddTriggerByElement方法初始化但没有后面多余的int bool string float参数
+                            if (method == null)
+                            {
+                                method = type.GetMethod("AddTriggerByElement");
+                                parameters = new object[] { triggerInfoCache[value][i].target, triggerInfoCache[value][i].method, triggerInfoCache[value][i].triggerType };
                             }
                             method.Invoke(t, parameters);
                         }
@@ -433,35 +422,35 @@ namespace stARkit.Cloud.ARPackageSDK
             }
         }
     }
-}
-public static class Expand
-{
-    public static Transform FindObjFormChild(this Transform transform, string objname)
+    public static class Expand
     {
-        Transform obj = null;
-        if (transform.name == objname)
+        public static Transform FindObjFormChild(this Transform transform, string objname)
         {
-            obj = transform;
-            return obj;
-        }
-
-        if (transform.childCount > 0)
-        {
-            Transform child;
-            for (int i = 0;i < transform.childCount;i++)
+            Transform obj = null;
+            if (transform.name == objname)
             {
-                child = transform.GetChild(i);
-                if (child.name == objname)
+                obj = transform;
+                return obj;
+            }
+
+            if (transform.childCount > 0)
+            {
+                Transform child;
+                for (int i = 0;i < transform.childCount;i++)
                 {
-                    obj = child;
-                    return obj;
-                }
-                if (obj == null)
-                {
-                    obj = child.FindObjFormChild(objname);
+                    child = transform.GetChild(i);
+                    if (child.name == objname)
+                    {
+                        obj = child;
+                        return obj;
+                    }
+                    if (obj == null)
+                    {
+                        obj = child.FindObjFormChild(objname);
+                    }
                 }
             }
+            return obj;
         }
-        return obj;
     }
 }
