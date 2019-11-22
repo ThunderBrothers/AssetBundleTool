@@ -1,7 +1,11 @@
-ParameterMore 1
-output637099991408956023.bytes
-2
+PlayAnimationByName 1
+output637100096198994452.bytes
+4
 BundleEventTrigger
-ParameterMore 1/Trigger--D[0]
-SetColor_ByString
-ParameterMore 1/CapsuleTrigger--D[0]->SetColor_ByString[0]->SetColor_ByString[1]->SetColor_ByString[2]
+PlayAnimationByName 1/Cube--D[0]
+PlayAnimationByName
+PlayAnimationByName 1/CapsuleCube--D[0]->PlayAnimationByName[0]->PlayAnimationByName[1]->PlayAnimationByName[2]
+PlayAnimationByName
+PlayAnimationByName 1/CapsuleCube--D[0]->PlayAnimationByName[0]->PlayAnimationByName[1]->PlayAnimationByName[2]
+PlayAnimationByName
+PlayAnimationByName 1/CapsuleCube--D[0]->PlayAnimationByName[0]->PlayAnimationByName[1]->PlayAnimationByName[2]
