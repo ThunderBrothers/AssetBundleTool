@@ -6,3 +6,11 @@ obj/
 Temp/
 Packages/
 BundleGit.sln
+AssetBundleTool.csproj
+Unity.CollabProxy.Editor.csproj
+Logs/Packages-Update.log
+Unity.PackageManagerUI.Editor.csproj
+AssetBundleTool.Editor.csproj
+Unity.TextMeshPro.Editor.csproj
+Unity.Analytics.DataPrivacy.csproj
+Unity.TextMeshPro.csproj
